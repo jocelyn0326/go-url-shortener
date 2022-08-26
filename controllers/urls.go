@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	"unicode/utf8"
 
 	log "github.com/cihub/seelog"
 
@@ -32,7 +33,6 @@ func SaveUrl(urlElement models.UrlElement) (models.UrlElement, error) {
 		return resultUrlElement, nil
 	}
 
-	// TODO: Check redis key longest limit(cause it'll store long url).
 	// Step 3. If the long url does not exist in cache:
 	// Generate a random url code until it's unique by get all the keys in.
 	// Guarantee unique by using redis transactions optimistic locking.
@@ -88,21 +88,29 @@ func SaveUrl(urlElement models.UrlElement) (models.UrlElement, error) {
 func PostShortenUrlHandler(c *gin.Context) {
 	var urlElement models.UrlElement
 	var result models.UrlElement
+
+	// Check request body validation
 	if bindError := c.BindJSON(&urlElement); bindError != nil {
-		log.Info("Received invalid url request, url: ", urlElement.LongUrl, bindError.Error())
+		log.Info("Received invalid request body.")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body."})
 		return
 	}
 
-	// TODO: Validate the request body
+	// Check url character length. Stick to the lowest common denominator and limit their URLs to 2,083 characters in length.
+	if utf8.RuneCountInString(urlElement.LongUrl) > 2083 {
+		log.Info("Received invalid url. Url characters can not greater than 2083.")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid url.Url characters can not greater than 2083."})
+	}
 
+	//Check url validation.
 	_, parseError := url.ParseRequestURI(urlElement.LongUrl)
-
 	if parseError != nil {
 		log.Info("Received invalid url request, url: ", urlElement.LongUrl, parseError.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid url format."})
 		return
 	}
+
+	// Save url into cache
 	result, saveError := SaveUrl(urlElement)
 	if saveError != nil {
 		log.Error("Unexpected error raised: ", saveError.Error())
