@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  test-funnow-api-server:
+    container_name: test-funnow-api-server
+    build: .
+    env_file:
+      - env/test.env
+    ports:
+      - "8082:8082"
+    depends_on:
+      - test-redis
+    networks:
+      - test-funnow
+
+  test-redis:
+    container_name: test-funnow-redis
+    image: bitnami/redis:6.2.7
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    networks:
+      - test-funnow
+
+networks:
+  test-funnow:
