@@ -26,7 +26,7 @@ Implement a one-to-one url shorten service.
 url: http://localhost:8080/shorten
 | Property | Type | Description |
 | -------- | -------- | -------- |
-| longUrl     | string     | Generate by random and stored in chache for future using    |
+| longUrl     | string     | The original url which will be shorten and be kept in cache. |
 
 
 ```
