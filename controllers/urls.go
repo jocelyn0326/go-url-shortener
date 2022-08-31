@@ -6,6 +6,7 @@ import (
 	"FunNow/url-shortener/models"
 	"FunNow/url-shortener/utils"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 	"time"
@@ -40,8 +41,14 @@ func SaveUrl(urlElement models.UrlElement) (models.UrlElement, error) {
 	txf := func(tx *redis.Tx) error {
 		// It returns redis.Nil error when key does not exist.
 		getKeyError := tx.Get(constants.Ctx, urlCode).Err()
-		if getKeyError != nil && getKeyError != redis.Nil {
-			return err
+		if getKeyError != redis.Nil {
+			// urlCode exists in cache
+			if getKeyError == nil {
+				return errors.New("This Key already exists.")
+			}
+
+			// Raise the original error raised by tx.Get().Err()
+			return getKeyError
 		}
 
 		// Finalize the urlElement and save it to cache.
