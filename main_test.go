@@ -16,93 +16,76 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPostShortenUrlHandlerShortenNormalData(t *testing.T) {
+func InitShortenUtilities(mapData map[string]interface{}, isResponse200 bool) (*httptest.ResponseRecorder, models.UrlElement, models.ErrorTemplate) {
 	r := routers.InitRouter()
-	faker := faker.NewFaker()
-	longUrl := faker.RandomUrl()
-	mapData := map[string]interface{}{
-		"longUrl": longUrl,
-	}
 	data, _ := json.Marshal(mapData)
 	var jsonStr = []byte(string(data))
 	req, _ := http.NewRequest("POST", "/shorten", bytes.NewBuffer(jsonStr))
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	var result models.UrlElement
-	json.Unmarshal(w.Body.Bytes(), &result)
+	var result200 models.UrlElement
+	var result400 models.ErrorTemplate
+	if isResponse200 {
+		json.Unmarshal(w.Body.Bytes(), &result200)
+	} else {
+		json.Unmarshal(w.Body.Bytes(), &result400)
+	}
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, longUrl, result.LongUrl)
-	assert.True(t, strings.HasPrefix(result.ShortUrl, constants.BaseUrl))
+	return w, result200, result400
 }
 
-func TestPostShortenUrlHandlerShortenReturnSameShortUrl(t *testing.T) {
-	r := routers.InitRouter()
+func TestPostShortenUrlHandlerShortenNormalData(t *testing.T) {
 	faker := faker.NewFaker()
 	longUrl := faker.RandomUrl()
 	mapData := map[string]interface{}{
 		"longUrl": longUrl,
 	}
-	data, _ := json.Marshal(mapData)
-	var jsonStr = []byte(string(data))
-	firstReq, _ := http.NewRequest("POST", "/shorten", bytes.NewBuffer(jsonStr))
-	firstW := httptest.NewRecorder()
-	r.ServeHTTP(firstW, firstReq)
+	w, result200, _ := InitShortenUtilities(mapData, true)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, longUrl, result200.LongUrl)
+	assert.True(t, strings.HasPrefix(result200.ShortUrl, constants.BaseUrl))
+}
 
-	var firstResult models.UrlElement
-	json.Unmarshal(firstW.Body.Bytes(), &firstResult)
+func TestPostShortenUrlHandlerShortenReturnSameShortUrl(t *testing.T) {
+
+	faker := faker.NewFaker()
+	longUrl := faker.RandomUrl()
+	mapData := map[string]interface{}{
+		"longUrl": longUrl,
+	}
+
+	firstW, first200Result, _ := InitShortenUtilities(mapData, true)
 
 	assert.Equal(t, http.StatusOK, firstW.Code)
-	assert.Equal(t, longUrl, firstResult.LongUrl)
-	assert.True(t, strings.HasPrefix(firstResult.ShortUrl, constants.BaseUrl))
+	assert.Equal(t, longUrl, first200Result.LongUrl)
+	assert.True(t, strings.HasPrefix(first200Result.ShortUrl, constants.BaseUrl))
 
-	expectedShortUrl := firstResult.ShortUrl
-	secondReq, _ := http.NewRequest("POST", "/shorten", bytes.NewBuffer(jsonStr))
-	secondW := httptest.NewRecorder()
-	r.ServeHTTP(secondW, secondReq)
-
-	var secondResult models.UrlElement
-	json.Unmarshal(firstW.Body.Bytes(), &secondResult)
+	secondW, second200Result, _ := InitShortenUtilities(mapData, true)
 
 	assert.Equal(t, http.StatusOK, secondW.Code)
-	assert.Equal(t, expectedShortUrl, secondResult.ShortUrl)
+	assert.Equal(t, first200Result.ShortUrl, second200Result.ShortUrl)
 }
 
 func TestPostShortenUrlHandlerShortenIncorrectRequestBody(t *testing.T) {
-	r := routers.InitRouter()
+
 	faker := faker.NewFaker()
 	longUrl := faker.RandomUrl()
 	mapData := map[string]interface{}{
 		"wrongKey": longUrl,
 	}
-	data, _ := json.Marshal(mapData)
-	var jsonStr = []byte(string(data))
-	req, _ := http.NewRequest("POST", "/shorten", bytes.NewBuffer(jsonStr))
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	var errorResult models.ErrorTemplate
-	json.Unmarshal(w.Body.Bytes(), &errorResult)
+	w, _, result400 := InitShortenUtilities(mapData, false)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, errorResult.Error, "Invalid request body.")
+	assert.Equal(t, result400.Error, "Invalid request body.")
 }
 
 func TestPostShortenUrlHandlerShortenInvalidUrl(t *testing.T) {
-	r := routers.InitRouter()
 	mapData := map[string]interface{}{
 		"longURL": "INVALID URL",
 	}
-	data, _ := json.Marshal(mapData)
-	var jsonStr = []byte(string(data))
-	req, _ := http.NewRequest("POST", "/shorten", bytes.NewBuffer(jsonStr))
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	var errorResult models.ErrorTemplate
-	json.Unmarshal(w.Body.Bytes(), &errorResult)
+	w, _, result400 := InitShortenUtilities(mapData, false)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, errorResult.Error, "Invalid url format.")
+	assert.Equal(t, result400.Error, "Invalid url format.")
 }

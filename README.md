@@ -18,7 +18,7 @@ Implement a one-to-one url shorten service.
 ## How to run test
 
 1. `docker compose -f docker-compose-test.yaml build`
-2. `docker compose -f docker-compose-test.yaml run test-funnow-api-server go test -v`
+2. `docker compose -f docker-compose-test.yaml run test-funnow-api-server /wait-for-it.sh test-redis:6379 -- go test -v`
 
 ## API Introduction
 
