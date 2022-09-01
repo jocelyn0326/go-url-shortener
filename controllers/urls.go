@@ -71,7 +71,7 @@ func SaveUrl(urlElement models.UrlElement) (models.UrlElement, error) {
 	}
 
 	const maxRetries = 1000
-
+	var generateShortUrlSuccesses bool = false
 	// Retry if the key exists, do the loop with a limit of 1000 times.
 	for i := 0; i < maxRetries; i++ {
 
@@ -83,12 +83,17 @@ func SaveUrl(urlElement models.UrlElement) (models.UrlElement, error) {
 
 		// The transaction is successful, break the loop.
 		if err == nil {
+			generateShortUrlSuccesses = true
 			break
 		}
 
 	}
 
-	return urlElement, nil
+	if generateShortUrlSuccesses {
+		return urlElement, nil
+	} else {
+		return urlElement, errors.New("Failed to generate a unique key.")
+	}
 
 }
 
