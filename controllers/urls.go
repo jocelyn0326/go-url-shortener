@@ -56,6 +56,7 @@ func SaveUrl(urlElement models.UrlElement) (models.UrlElement, error) {
 		urlElement.CreateDateTime = time.Now()
 		urlJsonValue, _ := json.Marshal(urlElement)
 
+		// Operation is committed only if the watched keys remain unchanged.
 		_, err = tx.TxPipelined(constants.Ctx, func(pipe redis.Pipeliner) error {
 
 			// First, set the url code into the cache for checking duplication
@@ -91,9 +92,9 @@ func SaveUrl(urlElement models.UrlElement) (models.UrlElement, error) {
 
 	if generateShortUrlSuccesses {
 		return urlElement, nil
-	} else {
-		return urlElement, errors.New("Failed to generate a unique key.")
 	}
+
+	return urlElement, errors.New("Failed to generate a unique key.")
 
 }
 
