@@ -1,4 +1,4 @@
-# ShortenUrl- 郭宜萱(yixuanguo0326@gmail.com)
+# ShortenUrl (yixuanguo0326@gmail.com)
 
 
 ## Summary
